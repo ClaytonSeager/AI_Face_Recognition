@@ -9,9 +9,23 @@ import FaceRecognition from './components/FaceRecognition/FaceRecognition.js'
 import SignIn from './components/SignIn/SignIn.js';
 import Register from './components/Register/Register';
 
+const initialState = {
+    input: '',
+    imageUrl: '',
+    box: {},
+    route: 'signin',
+    isSignedIn: false,
+    user: {
+        id: '',
+        name: '',
+        email: '',
+        entries: 0,
+        joined: ''
+    }
+}
 class App extends React.Component {
-    constructor() {
-        super();
+    constructor(props) {
+        super(props);
         this.state = {
             input: '',
             imageUrl: '',
@@ -59,44 +73,18 @@ class App extends React.Component {
         this.setState({input: event.target.value});
     }
 
-    onButtonSubmit = ()=> {
-        this.setState({imageUrl: this.state.input})
-        const PAT = '18596d847895478d9b6733203db7cb82';
-        const USER_ID = 'claytonseager';
-        const APP_ID = 'cms-smart-brain-project-2023';
-        const MODEL_ID = 'face-detection';
-        const MODEL_VERSION_ID = '6dc7e46bc9124c5c8824be4822abe105';
-        const IMAGE_URL = this.state.input;
-
-        const raw = JSON.stringify({
-            "user_app_id": {
-                "user_id": USER_ID,
-                "app_id": APP_ID
-            },
-            "inputs": [
-                {
-                    "data": {
-                        "image": {
-                            "url": IMAGE_URL
-                        }
-                    }
-                }
-            ]
-        });
-
-        const requestOptions = {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Authorization': 'Key ' + PAT
-            },
-            body: raw
-        };
-
-        fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/versions/" + MODEL_VERSION_ID + "/outputs", requestOptions)
+    onButtonSubmit = () => {
+        this.setState({imageUrl: this.state.input});
+        fetch('http://localhost:3000/imageurl', {
+            method: 'post',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                input: this.state.input
+            })
+        })
             .then(response => response.json())
-            .then(result => {
-                if (result) {
+            .then(response => {
+                if (response) {
                     fetch('http://localhost:3000/image', {
                         method: 'put',
                         headers: {'Content-Type': 'application/json'},
@@ -108,16 +96,17 @@ class App extends React.Component {
                         .then(count => {
                             this.setState(Object.assign(this.state.user, { entries: count}))
                         })
+                        .catch(console.log)
+
                 }
-                this.displayFaceBox(this.calculateFaceLocation(result))
-                }
-            )
-            .catch(error => console.log('error', error));
+                this.displayFaceBox(this.calculateFaceLocation(response))
+            })
+            .catch(err => console.log(err));
     }
 
     onRouteChange = (route) => {
         if (route === 'signout') {
-            this.setState({isSignedIn: false})
+            this.setState(initialState)
         } else if (route === 'home') {
             this.setState({isSignedIn: true});
         }
